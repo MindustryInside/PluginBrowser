@@ -115,11 +115,11 @@ public class GitHubDownloader{
         }
     }
 
-    public void importPlugin(PluginListing pluginListing, Runnable runnable){
-        if(pluginListing.hasJava){
-            importJavaPlugin(pluginListing.repo, runnable);
+    public void importMod(String repo, boolean hasJava, Runnable runnable){
+        if(hasJava){
+            importJavaMod(repo, runnable);
         }else{
-            Core.net.httpGet(ghApi + "/repos/" + pluginListing.repo, res -> {
+            Core.net.httpGet(ghApi + "/repos/" + repo, res -> {
                 if(checkError(res)){
                     var json = Jval.read(res.getResultAsString());
                     String mainBranch = json.getString("default_branch");
@@ -128,16 +128,16 @@ public class GitHubDownloader{
                     // this is a crude heuristic for class mods; only required for direct github import
                     // TODO make a more reliable way to distinguish java mod repos
                     if(jvmLangs.contains(language)){
-                        importJavaPlugin(pluginListing.repo, runnable);
+                        importJavaMod(repo, runnable);
                     }else{
-                        importBranch(mainBranch, pluginListing.repo, this::showStatus, runnable);
+                        importBranch(mainBranch, repo, this::showStatus, runnable);
                     }
                 }
             }, this::importFail);
         }
     }
 
-    public void importJavaPlugin(String repo, Runnable runnable){
+    public void importJavaMod(String repo, Runnable runnable){
         // grab latest release
         Core.net.httpGet(ghApi + "/repos/" + repo + "/releases/latest", res -> {
             if(checkError(res)){
