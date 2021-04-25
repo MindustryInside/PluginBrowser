@@ -1,4 +1,4 @@
-# Plugin Template
+# Plugin Browser
 
 ## Building
 First, make sure you have JDK 14 installed. Then, setup [plugin.json](src/main/resources/plugin.json) and run the following commands:

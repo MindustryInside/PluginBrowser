@@ -1,9 +1,9 @@
 {
-  "name": "plugin-template",
-  "displayName": "",
-  "description": "",
-  "author": "",
-  "main": "",
+  "name": "plugin-browser",
+  "displayName": "Plugin Browser",
+  "description": "Mindustry plugin browser for server.",
+  "author": "Mindustry Inside",
+  "main": "inside.PluginBrowser",
   "version": "1.0",
   "minGameVersion": 126.2
 }
