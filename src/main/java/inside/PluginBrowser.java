@@ -1,13 +1,11 @@
 package inside;
 
-import arc.func.Func;
 import arc.math.Mathf;
 import arc.struct.Seq;
 import arc.util.*;
 import mindustry.mod.*;
 
-import java.util.*;
-import java.util.function.Function;
+import java.util.Locale;
 
 import static mindustry.Vars.*;
 
@@ -18,6 +16,7 @@ public class PluginBrowser extends Plugin {
     @Override
     public void init() {
 
+        // works incorrect
         // mods = new HeadlessMods();
 
         gitHubDownloader = new GitHubDownloader();
@@ -44,7 +43,7 @@ public class PluginBrowser extends Plugin {
                             Log.info("Plugins found: @", result.size);
                             int i = 0;
                             for (PluginListing pluginListing : result) {
-                                Log.info("- [@] '@' / @", i++, pluginListing.name, pluginListing.repo);
+                                Log.info("- [@] '@' / '@'", i++, pluginListing.name, pluginListing.repo);
                             }
                         } else if (result.size == 1) {
                             PluginListing pluginListing = result.first();
@@ -180,7 +179,7 @@ public class PluginBrowser extends Plugin {
                                 Log.info("Mods found: @", result.size);
                                 int i = 0;
                                 for (ModListing modListing : result) {
-                                    Log.info("- [@] '@' / @", i++, modListing.name, modListing.repo);
+                                    Log.info("- [@] '@' / '@'", i++, modListing.name, modListing.repo);
                                 }
                             } else if (result.size == 1) {
                                 ModListing modListing = result.first();
