@@ -18,7 +18,7 @@ public class PluginBrowser extends Plugin {
     @Override
     public void init() {
 
-        mods = new HeadlessMods();
+        // mods = new HeadlessMods();
 
         gitHubDownloader = new GitHubDownloader();
     }
@@ -27,8 +27,39 @@ public class PluginBrowser extends Plugin {
     public void registerServerCommands(CommandHandler handler) {
 
         // TODO: description
-        handler.register("plugins", "<add/remove/sync/list> [value...]", "TODO", args -> {
+        handler.register("plugins", "<search/add/remove/sync/list> [value...]", "TODO", args -> {
             switch (args[0].toLowerCase(Locale.ROOT)) {
+                case "search" -> {
+                    if (args.length != 2) {
+                        Log.info("'query' must be set.");
+                        return;
+                    }
+
+                    String arg = args[1].toLowerCase();
+                    gitHubDownloader.getPluginList(seq -> {
+                        Seq<PluginListing> result = seq.select(p -> p.name.toLowerCase().contains(arg) ||
+                                p.repo.toLowerCase().contains(arg));
+
+                        if (result.size > 1){
+                            Log.info("Plugins found: @", result.size);
+                            int i = 0;
+                            for (PluginListing pluginListing : result) {
+                                Log.info("- [@] '@' / @", i++, pluginListing.name, pluginListing.repo);
+                            }
+                        } else if (result.size == 1) {
+                            PluginListing pluginListing = result.first();
+                            Log.info("Name: @", pluginListing.name);
+                            Log.info("Repository: @", pluginListing.repo);
+                            Log.info("Author: @", pluginListing.author);
+                            Log.info("Description: @", pluginListing.description);
+                            Log.info("Java: @", pluginListing.hasJava ? "yes" : "no");
+                            Log.info("Last Update: @", pluginListing.lastUpdated);
+                            Log.info("Stars: @", pluginListing.stars);
+                        } else {
+                            Log.info("No plugins with that query could be found.");
+                        }
+                    });
+                }
                 case "add" -> {
                     if (args.length != 2) {
                         Log.info("'plugin name' must be set.");
@@ -95,7 +126,7 @@ public class PluginBrowser extends Plugin {
                         Log.info("-- Plugins List Page @/@ --", (page + 1), pages);
                         for (int i = commandsPerPage * page; i < Math.min(commandsPerPage * (page + 1), seq.size); i++) {
                             PluginListing pluginListing = seq.get(i);
-                            Log.info("Name: @", Strings.stripColors(pluginListing.name));
+                            Log.info("Name: @", pluginListing.name);
                             Log.info("Repository: @", pluginListing.repo);
                             Log.info("Author: @", pluginListing.author);
                             Log.info("Description: @", pluginListing.description);
@@ -134,6 +165,39 @@ public class PluginBrowser extends Plugin {
                 Log.info("Mod directory: &fi@", modDirectory.file().getAbsoluteFile().toString());
             }else{
                 switch (args[0].toLowerCase(Locale.ROOT)) {
+                    case "search" -> {
+                        if (args.length != 2) {
+                            Log.info("'query' must be set.");
+                            return;
+                        }
+
+                        String arg = args[1].toLowerCase();
+                        gitHubDownloader.getModList(seq -> {
+                            Seq<ModListing> result = seq.select(p -> p.name.toLowerCase().contains(arg) ||
+                                    p.repo.toLowerCase().contains(arg));
+
+                            if (result.size > 1){
+                                Log.info("Mods found: @", result.size);
+                                int i = 0;
+                                for (ModListing modListing : result) {
+                                    Log.info("- [@] '@' / @", i++, modListing.name, modListing.repo);
+                                }
+                            } else if (result.size == 1) {
+                                ModListing modListing = result.first();
+                                Log.info("Name: @", Strings.stripColors(modListing.name));
+                                Log.info("Repository: @", modListing.repo);
+                                Log.info("Author: @", modListing.author);
+                                Log.info("Description: @", trimText(modListing.description));
+                                Log.info("Min Game Version: @", modListing.minGameVersion);
+                                Log.info("Has Java: @", modListing.hasJava ? "yes" : "no");
+                                Log.info("Has Scripts: @", modListing.hasScripts ? "yes" : "no");
+                                Log.info("Last Update: @", modListing.lastUpdated);
+                                Log.info("Stars: @", modListing.stars);
+                            } else {
+                                Log.info("No mods with that query could be found.");
+                            }
+                        });
+                    }
                     case "add" -> {
                         if (args.length != 2) {
                             Log.info("'mod name' must be set.");
@@ -197,21 +261,13 @@ public class PluginBrowser extends Plugin {
                                 return;
                             }
 
-                            Func<String, String> trimText = text -> {
-                                if(text == null) return "";
-                                if(text.contains("\n")){
-                                    return text.substring(0, text.indexOf("\n"));
-                                }
-                                return text;
-                            };
-
                             Log.info("-- Mods List Page @/@ --", (page + 1), pages);
                             for (int i = commandsPerPage * page; i < Math.min(commandsPerPage * (page + 1), seq.size); i++) {
                                 ModListing modListing = seq.get(i);
                                 Log.info("Name: @", Strings.stripColors(modListing.name));
                                 Log.info("Repository: @", modListing.repo);
                                 Log.info("Author: @", modListing.author);
-                                Log.info("Description: @", trimText.get(modListing.description));
+                                Log.info("Description: @", trimText(modListing.description));
                                 Log.info("Min Game Version: @", modListing.minGameVersion);
                                 Log.info("Has Java: @", modListing.hasJava ? "yes" : "no");
                                 Log.info("Has Scripts: @", modListing.hasScripts ? "yes" : "no");
@@ -235,8 +291,16 @@ public class PluginBrowser extends Plugin {
         });
     }
 
+    public String trimText(String text){
+        if(text == null) return "";
+        if(text.contains("\n")){
+            return text.substring(0, text.indexOf("\n"));
+        }
+        return text;
+    }
+
     @Nullable
-    public static String findClosest(Seq<String> all, String wrong, int max){
+    public String findClosest(Seq<String> all, String wrong, int max){
         int min = 0;
         String closest = null;
         for(String t : all){
