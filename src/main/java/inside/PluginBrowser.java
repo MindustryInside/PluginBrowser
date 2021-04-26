@@ -2,10 +2,12 @@ package inside;
 
 import arc.func.Func;
 import arc.math.Mathf;
+import arc.struct.Seq;
 import arc.util.*;
 import mindustry.mod.*;
 
-import java.util.Locale;
+import java.util.*;
+import java.util.function.Function;
 
 import static mindustry.Vars.*;
 
@@ -29,7 +31,7 @@ public class PluginBrowser extends Plugin {
             switch (args[0].toLowerCase(Locale.ROOT)) {
                 case "add" -> {
                     if (args.length != 2) {
-                        Log.info("'Plugin name' must be set.");
+                        Log.info("'plugin name' must be set.");
                         return;
                     }
 
@@ -38,7 +40,12 @@ public class PluginBrowser extends Plugin {
                         PluginListing pluginListing = seq.find(p -> p.name.equals(pluginName));
 
                         if (pluginListing == null) {
-                            Log.info("Plugin by name '@' not found.", pluginName);
+                            String suggest = findClosest(seq.map(p -> p.name), pluginName, 3);
+                            if (suggest != null) {
+                                Log.info("No plugin with name '@' found. Did you mean '@'?", pluginName, suggest);
+                            } else {
+                                Log.info("No plugin with name '@' found.", pluginName);
+                            }
                             return;
                         }
 
@@ -47,14 +54,20 @@ public class PluginBrowser extends Plugin {
                 }
                 case "remove" -> {
                     if (args.length != 2) {
-                        Log.info("'Plugin name' must be set.");
+                        Log.info("'plugin name' must be set.");
                         return;
                     }
 
                     String pluginName = args[1];
-                    Mods.LoadedMod plugin = mods.list().find(l -> l.main instanceof Plugin && l.meta.displayName().equals(pluginName));
+                    Seq<Mods.LoadedMod> plugins = mods.list().select(l -> l.main instanceof Plugin);
+                    Mods.LoadedMod plugin = plugins.find(l -> l.meta.displayName().equals(pluginName));
                     if (plugin == null) {
-                        Log.info("Plugin by name '@' not found.", pluginName);
+                        String suggest = findClosest(plugins.map(l -> l.meta.displayName()), pluginName, 3);
+                        if (suggest != null) {
+                            Log.info("No plugin with name '@' found. Did you mean '@'?", pluginName, suggest);
+                        } else {
+                            Log.info("No plugin with name '@' found.", pluginName);
+                        }
                         return;
                     }
 
@@ -97,7 +110,7 @@ public class PluginBrowser extends Plugin {
                 }
                 case "sync" -> {
                     gitHubDownloader.pluginList = null;
-                    gitHubDownloader.getPluginList(seq -> Log.info("Fetched @ plugins", seq.size));
+                    gitHubDownloader.getPluginList(seq -> Log.info("Fetched @ plugins.", seq.size));
                 }
                 default -> {
                     Log.info("Unknown action.");
@@ -123,7 +136,7 @@ public class PluginBrowser extends Plugin {
                 switch (args[0].toLowerCase(Locale.ROOT)) {
                     case "add" -> {
                         if (args.length != 2) {
-                            Log.info("'Mod name' must be set.");
+                            Log.info("'mod name' must be set.");
                             return;
                         }
 
@@ -132,7 +145,12 @@ public class PluginBrowser extends Plugin {
                             ModListing modListing = seq.find(p -> p.name.equals(modName));
 
                             if (modListing == null) {
-                                Log.info("Mod by name '@' not found.", modName);
+                                String suggest = findClosest(seq.map(l -> l.name), modName, 3);
+                                if (suggest != null) {
+                                    Log.info("No mod with name '@' found. Did you mean '@'?", modName, suggest);
+                                } else {
+                                    Log.info("No mod with name '@' found.", modName);
+                                }
                                 return;
                             }
 
@@ -141,14 +159,20 @@ public class PluginBrowser extends Plugin {
                     }
                     case "remove" -> {
                         if (args.length != 2) {
-                            Log.info("'Mod name' must be set.");
+                            Log.info("'mod name' must be set.");
                             return;
                         }
 
                         String modName = args[1];
-                        Mods.LoadedMod mod = mods.list().find(l -> !(l.main instanceof Plugin) && l.meta.displayName().equals(modName));
+                        Seq<Mods.LoadedMod> modsList = mods.list().select(l -> !(l.main instanceof Plugin));
+                        Mods.LoadedMod mod = modsList.find(l -> l.meta.displayName().equals(modName));
                         if (mod == null) {
-                            Log.info("Mod by name '@' not found.", modName);
+                            String suggest = findClosest(modsList.map(l -> l.meta.displayName()), modName, 3);
+                            if (suggest != null) {
+                                Log.info("No mod with name '@' found. Did you mean '@'?", modName, suggest);
+                            } else {
+                                Log.info("No mod with name '@' found.", modName);
+                            }
                             return;
                         }
 
@@ -190,7 +214,7 @@ public class PluginBrowser extends Plugin {
                                 Log.info("Description: @", trimText.get(modListing.description));
                                 Log.info("Min Game Version: @", modListing.minGameVersion);
                                 Log.info("Has Java: @", modListing.hasJava ? "yes" : "no");
-                                Log.info("Has scripts: @", modListing.hasScripts ? "yes" : "no");
+                                Log.info("Has Scripts: @", modListing.hasScripts ? "yes" : "no");
                                 Log.info("Last Update: @", modListing.lastUpdated);
                                 Log.info("Stars: @", modListing.stars);
                                 if (i + 1 != Math.min(commandsPerPage * (page + 1), seq.size)) {
@@ -201,7 +225,7 @@ public class PluginBrowser extends Plugin {
                     }
                     case "sync" -> {
                         gitHubDownloader.pluginList = null;
-                        gitHubDownloader.getPluginList(seq -> Log.info("Fetched @ mods", seq.size));
+                        gitHubDownloader.getPluginList(seq -> Log.info("Fetched @ mods.", seq.size));
                     }
                     default -> {
                         Log.info("Unknown action.");
@@ -209,5 +233,19 @@ public class PluginBrowser extends Plugin {
                 }
             }
         });
+    }
+
+    @Nullable
+    public static String findClosest(Seq<String> all, String wrong, int max){
+        int min = 0;
+        String closest = null;
+        for(String t : all){
+            int dst = Strings.levenshtein(t, wrong);
+            if(dst < max && (closest == null || dst < min)){
+                min = dst;
+                closest = t;
+            }
+        }
+        return closest;
     }
 }

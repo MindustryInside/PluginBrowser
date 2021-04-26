@@ -59,7 +59,7 @@ public class GitHubDownloader{
                         }
                     }
                 });
-            }, error -> Core.app.post(() -> pluginError(error)));
+            }, this::importFail);
         }else{
             listener.get(pluginList);
         }
@@ -95,7 +95,7 @@ public class GitHubDownloader{
                         }
                     }
                 });
-            }, error -> Core.app.post(() -> pluginError(error)));
+            }, this::importFail);
         }else{
             listener.get(modList);
         }

@@ -1,7 +1,7 @@
 {
   "name": "plugin-browser",
   "displayName": "Plugin Browser",
-  "description": "Mindustry plugin browser for server.",
+  "description": "Mindustry plugin/mod browser for Mindustry servers.",
   "author": "Mindustry Inside",
   "main": "inside.PluginBrowser",
   "version": "1.0",
