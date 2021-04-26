@@ -17,6 +17,8 @@ import static mindustry.Vars.*;
 
 public class GitHubDownloader{
 
+    public static final long syncIntervalTime = 60 * 60 * 1000; // 1 hour
+
     public static final String pluginListUrl = "https://raw.githubusercontent.com/MindustryInside/MindustryPlugins/main/plugins.json";
 
     public static final String modListUrl = "https://raw.githubusercontent.com/Anuken/MindustryMods/master/mods.json";
@@ -25,13 +27,15 @@ public class GitHubDownloader{
 
     @Nullable
     public Seq<PluginListing> pluginList;
+    public long lastPluginsTimeSynced;
 
     @Nullable
     public Seq<ModListing> modList;
+    public long lastModsTimeSynced;
 
     @SuppressWarnings("unchecked")
     public void getPluginList(Cons<Seq<PluginListing>> listener){
-        if(pluginList == null){
+        if(pluginList == null || Time.timeSinceMillis(lastPluginsTimeSynced) >= syncIntervalTime){
             Core.net.httpGet(pluginListUrl, response -> {
                 String strResult = response.getResultAsString();
                 var status = response.getStatus();
@@ -67,7 +71,7 @@ public class GitHubDownloader{
 
     @SuppressWarnings("unchecked")
     public void getModList(Cons<Seq<ModListing>> listener){
-        if(modList == null){
+        if(modList == null || Time.timeSinceMillis(lastModsTimeSynced) >= syncIntervalTime){
             Core.net.httpGet(modListUrl, response -> {
                 String strResult = response.getResultAsString();
                 var status = response.getStatus();

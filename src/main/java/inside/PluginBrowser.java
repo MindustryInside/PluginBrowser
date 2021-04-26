@@ -25,8 +25,7 @@ public class PluginBrowser extends Plugin {
     @Override
     public void registerServerCommands(CommandHandler handler) {
 
-        // TODO: description
-        handler.register("plugins", "<search/add/remove/sync/list> [value...]", "TODO", args -> {
+        handler.register("plugins", "<search/add/remove/sync/list> [value...]", "Manage, browse plugins.", args -> {
             switch (args[0].toLowerCase(Locale.ROOT)) {
                 case "search" -> {
                     if (args.length != 2) {
@@ -143,14 +142,19 @@ public class PluginBrowser extends Plugin {
                     gitHubDownloader.getPluginList(seq -> Log.info("Fetched @ plugins.", seq.size));
                 }
                 default -> {
-                    Log.info("Unknown action.");
+                    Log.info("Unknown action. Available actions:");
+                    Log.info("  &b&lbplugins search&lc&fi <query...>&fr - &lwSearch plugins by query.");
+                    Log.info("  &b&lbplugins add&lc&fi <plugin name...>&fr - &lwImport plugin.");
+                    Log.info("  &b&lbplugins remove&lc&fi <plugin name...>&fr - &lwRemove loaded plugin.");
+                    Log.info("  &b&lbplugins list&lc&fi [page...]&fr - &lwDisplay all plugins.");
+                    Log.info("  &b&lbplugins sync&lc&fi&fr - &lwSync plugins list.");
                 }
             }
         });
 
         handler.removeCommand("mods");
 
-        handler.register("mods", "[add/remove/list] [value...]", "Display all loaded mods.", args -> {
+        handler.register("mods", "[search/add/remove/list] [value...]", "Manage, browse mods.", args -> {
             // old command
             if(args.length == 0){
                 if(!mods.list().isEmpty()){
@@ -279,11 +283,16 @@ public class PluginBrowser extends Plugin {
                         });
                     }
                     case "sync" -> {
-                        gitHubDownloader.pluginList = null;
-                        gitHubDownloader.getPluginList(seq -> Log.info("Fetched @ mods.", seq.size));
+                        gitHubDownloader.modList = null;
+                        gitHubDownloader.getModList(seq -> Log.info("Fetched @ mods.", seq.size));
                     }
                     default -> {
-                        Log.info("Unknown action.");
+                        Log.info("Unknown action. Available actions:");
+                        Log.info("  &b&lbmods search&lc&fi <query...>&fr - &lwSearch mods by query.");
+                        Log.info("  &b&lbmods add&lc&fi <mod name...>&fr - &lwImport mod.");
+                        Log.info("  &b&lbmods remove&lc&fi <mod name...>&fr - &lwRemove loaded mod.");
+                        Log.info("  &b&lbmods list&lc&fi [page...]&fr - &lwDisplay all mods.");
+                        Log.info("  &b&lbmods sync&lc&fi&fr - &lwSync mods list.");
                     }
                 }
             }
@@ -302,11 +311,11 @@ public class PluginBrowser extends Plugin {
     public String findClosest(Seq<String> all, String wrong, int max){
         int min = 0;
         String closest = null;
-        for(String t : all){
-            int dst = Strings.levenshtein(t, wrong);
+        for(String s : all){
+            int dst = Strings.levenshtein(s, wrong);
             if(dst < max && (closest == null || dst < min)){
                 min = dst;
-                closest = t;
+                closest = s;
             }
         }
         return closest;
