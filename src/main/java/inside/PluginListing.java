@@ -1,6 +1,6 @@
 package inside;
 
-public class PluginListing{
+public class PluginListing {
     public String repo;
     public String name;
     public String author;
@@ -10,7 +10,7 @@ public class PluginListing{
     public int stars;
 
     @Override
-    public String toString(){
+    public String toString() {
         return "PluginListing{" +
                 "repo='" + repo + '\'' +
                 ", name='" + name + '\'' +

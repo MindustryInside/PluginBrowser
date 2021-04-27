@@ -1,7 +1,7 @@
 package inside;
 
 import arc.*;
-import arc.files.Fi;
+import arc.files.*;
 import arc.func.*;
 import arc.struct.*;
 import arc.util.*;
@@ -11,7 +11,7 @@ import mindustry.io.JsonIO;
 import mindustry.mod.ModListing;
 
 import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.util.*;
 
 import static mindustry.Vars.*;
 
@@ -34,106 +34,106 @@ public class GitHubDownloader{
     public long lastModsTimeSynced;
 
     @SuppressWarnings("unchecked")
-    public void getPluginList(Cons<Seq<PluginListing>> listener){
-        if(pluginList == null || Time.timeSinceMillis(lastPluginsTimeSynced) >= syncIntervalTime){
+    public void getPluginList(Cons<Seq<PluginListing>> listener) {
+        if (pluginList == null || Time.timeSinceMillis(lastPluginsTimeSynced) >= syncIntervalTime) {
             Core.net.httpGet(pluginListUrl, response -> {
                 String strResult = response.getResultAsString();
                 var status = response.getStatus();
 
                 Core.app.post(() -> {
-                    if(status != Net.HttpStatus.OK){
+                    if (status != Net.HttpStatus.OK) {
                         showStatus(status);
-                    }else{
-                        try{
+                    } else {
+                        try {
                             pluginList = JsonIO.json.fromJson(Seq.class, PluginListing.class, strResult);
 
                             var format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
                             Func<String, Date> parser = text -> {
-                                try{
+                                try {
                                     return format.parse(text);
-                                }catch(Exception e){
+                                } catch(Exception e) {
                                     throw new RuntimeException(e);
                                 }
                             };
 
                             pluginList.sortComparing(m -> parser.get(m.lastUpdated)).reverse();
                             listener.get(pluginList);
-                        }catch(Exception e){
+                        } catch(Exception e) {
                             Log.err(e);
                         }
                     }
                 });
             }, this::importFail);
-        }else{
+        } else {
             listener.get(pluginList);
         }
     }
 
     @SuppressWarnings("unchecked")
-    public void getModList(Cons<Seq<ModListing>> listener){
-        if(modList == null || Time.timeSinceMillis(lastModsTimeSynced) >= syncIntervalTime){
+    public void getModList(Cons<Seq<ModListing>> listener) {
+        if (modList == null || Time.timeSinceMillis(lastModsTimeSynced) >= syncIntervalTime) {
             Core.net.httpGet(modListUrl, response -> {
                 String strResult = response.getResultAsString();
                 var status = response.getStatus();
 
                 Core.app.post(() -> {
-                    if(status != Net.HttpStatus.OK){
+                    if (status != Net.HttpStatus.OK) {
                         showStatus(status);
-                    }else{
-                        try{
+                    } else {
+                        try {
                             modList = JsonIO.json.fromJson(Seq.class, ModListing.class, strResult);
 
                             var format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
                             Func<String, Date> parser = text -> {
-                                try{
+                                try {
                                     return format.parse(text);
-                                }catch(Exception e){
+                                } catch(Exception e) {
                                     throw new RuntimeException(e);
                                 }
                             };
 
                             modList.sortComparing(m -> parser.get(m.lastUpdated)).reverse();
                             listener.get(modList);
-                        }catch(Exception e){
+                        } catch(Exception e) {
                             Log.err(e);
                         }
                     }
                 });
             }, this::importFail);
-        }else{
+        } else {
             listener.get(modList);
         }
     }
 
-    public void handleMod(String repo, Net.HttpResponse result, Runnable runnable){
-        try{
+    public void handleMod(String repo, Net.HttpResponse result, Runnable runnable) {
+        try {
             Fi file = tmpDirectory.child(repo.replace("/", "") + ".zip");
             Streams.copy(result.getResultAsStream(), file.write(false));
             var mod = mods.importMod(file);
             mod.setRepo(repo);
             file.delete();
-        }catch(Throwable e){
+        } catch(Throwable e) {
             pluginError(e);
-        }finally{
+        } finally {
             runnable.run();
         }
     }
 
-    public void importMod(String repo, boolean hasJava, Runnable runnable){
-        if(hasJava){
+    public void importMod(String repo, boolean hasJava, Runnable runnable) {
+        if (hasJava) {
             importJavaMod(repo, runnable);
-        }else{
+        } else {
             Core.net.httpGet(ghApi + "/repos/" + repo, res -> {
-                if(checkError(res)){
+                if (checkError(res)) {
                     var json = Jval.read(res.getResultAsString());
                     String mainBranch = json.getString("default_branch");
                     String language = json.getString("language", "<none>");
 
                     // this is a crude heuristic for class mods; only required for direct github import
                     // TODO make a more reliable way to distinguish java mod repos
-                    if(jvmLangs.contains(language)){
+                    if (jvmLangs.contains(language)) {
                         importJavaMod(repo, runnable);
-                    }else{
+                    } else {
                         importBranch(mainBranch, repo, this::showStatus, runnable);
                     }
                 }
@@ -141,69 +141,69 @@ public class GitHubDownloader{
         }
     }
 
-    public void importJavaMod(String repo, Runnable runnable){
+    public void importJavaMod(String repo, Runnable runnable) {
         // grab latest release
         Core.net.httpGet(ghApi + "/repos/" + repo + "/releases/latest", res -> {
-            if(checkError(res)){
+            if (checkError(res)) {
                 var json = Jval.read(res.getResultAsString());
                 var asset = json.get("assets").asArray().find(j -> j.getString("name").endsWith(".jar"));
-                if(asset != null){
+                if (asset != null) {
                     // grab actual file
                     String url = asset.getString("browser_download_url");
                     Core.net.httpGet(url, result -> {
-                        if(checkError(result)){
+                        if (checkError(result)) {
                             handleMod(repo, result, runnable);
                         }
                     }, this::importFail);
-                }else{
+                } else {
                     throw new ArcRuntimeException("No JAR file found in releases. Make sure you have a valid jar file in the mod's latest Github Release.");
                 }
             }
         }, this::importFail);
     }
 
-    public void importBranch(String branch, String repo, Cons<Net.HttpStatus> err, Runnable runnable){
+    public void importBranch(String branch, String repo, Cons<Net.HttpStatus> err, Runnable runnable) {
         Core.net.httpGet(ghApi + "/repos/" + repo + "/zipball/" + branch, loc -> {
-            if(loc.getStatus() == Net.HttpStatus.OK){
-                if(loc.getHeader("Location") != null){
+            if (loc.getStatus() == Net.HttpStatus.OK) {
+                if (loc.getHeader("Location") != null) {
                     Core.net.httpGet(loc.getHeader("Location"), result -> {
-                        if(result.getStatus() != Net.HttpStatus.OK){
+                        if (result.getStatus() != Net.HttpStatus.OK) {
                             err.get(result.getStatus());
-                        }else{
+                        } else {
                             handleMod(repo, result, runnable);
                         }
                     }, this::importFail);
-                }else{
+                } else {
                     handleMod(repo, loc, runnable);
                 }
-            }else{
+            } else {
                 err.get(loc.getStatus());
             }
         }, this::importFail);
     }
 
-    private boolean checkError(Net.HttpResponse res){
-        if(res.getStatus() == Net.HttpStatus.OK){
+    private boolean checkError(Net.HttpResponse res) {
+        if (res.getStatus() == Net.HttpStatus.OK) {
             return true;
-        }else{
+        } else {
             showStatus(res.getStatus());
             return false;
         }
     }
 
-    private void showStatus(Net.HttpStatus status){
+    private void showStatus(Net.HttpStatus status) {
         Core.app.post(() -> Log.err("Connection error: @", Strings.capitalize(status.toString().toLowerCase())));
     }
 
-    private void importFail(Throwable t){
+    private void importFail(Throwable t) {
         Core.app.post(() -> pluginError(t));
     }
 
-    private void pluginError(Throwable error){
-        if(Strings.getCauses(error).contains(t -> t.getMessage() != null &&
-                (t.getMessage().contains("trust anchor") || t.getMessage().contains("SSL") || t.getMessage().contains("protocol")))){
+    private void pluginError(Throwable error) {
+        if (Strings.getCauses(error).contains(t -> t.getMessage() != null &&
+                (t.getMessage().contains("trust anchor") || t.getMessage().contains("SSL") || t.getMessage().contains("protocol")))) {
             Log.err("Your device does not support this feature.");
-        }else{
+        } else {
             Log.err(error);
         }
     }

@@ -16,9 +16,6 @@ public class PluginBrowser extends Plugin {
     @Override
     public void init() {
 
-        // works incorrect
-        // mods = new HeadlessMods();
-
         gitHubDownloader = new GitHubDownloader();
     }
 
@@ -299,21 +296,21 @@ public class PluginBrowser extends Plugin {
         });
     }
 
-    public String trimText(String text){
-        if(text == null) return "";
-        if(text.contains("\n")){
+    public String trimText(String text) {
+        if (text == null) return "";
+        if (text.contains("\n")) {
             return text.substring(0, text.indexOf("\n"));
         }
         return text;
     }
 
     @Nullable
-    public String findClosest(Seq<String> all, String wrong, int max){
+    public String findClosest(Seq<String> all, String wrong, int max) {
         int min = 0;
         String closest = null;
-        for(String s : all){
+        for (String s : all) {
             int dst = Strings.levenshtein(s, wrong);
-            if(dst < max && (closest == null || dst < min)){
+            if (dst < max && (closest == null || dst < min)) {
                 min = dst;
                 closest = s;
             }
