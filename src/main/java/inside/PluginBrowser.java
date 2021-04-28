@@ -97,6 +97,15 @@ public class PluginBrowser extends Plugin {
                         return;
                     }
 
+                    if (args[1].equalsIgnoreCase("help")) {
+                        Log.info("Available Criteria:");
+                        Log.info("  &b&lbname&lc&fi <mod name...>&fr - &lwSearch mods by name.");
+                        Log.info("  &b&lbrepo&lc&fi <mod repo...>&fr - &lwSearch mods by name.");
+                        Log.info("  &b&lbauthor&lc&fi <mod author...>&fr - &lwSearch mods by author.");
+                        Log.info("  &b&lbstars&lc&fi <condition>&fr - &lwSearch mods by stars. Format: >1 / <1 / >= 1 / <= 1 / 1");
+                        return;
+                    }
+
                     gitHubDownloader.getPluginList(seq -> {
                         StringMap params = parseCriteria(args[1], pluginSearchCriteria);
                         Log.debug("params: @", params);
@@ -229,7 +238,7 @@ public class PluginBrowser extends Plugin {
 
         handler.removeCommand("mods");
 
-        handler.register("mods", "[search/add/remove/list] [value...]", "Manage, browse mods.", args -> {
+        handler.register("mods", "[search/search-by/add/remove/list] [value...]", "Manage, browse mods.", args -> {
             // old command
             if(args.length == 0){
                 if(!mods.list().isEmpty()){
@@ -279,6 +288,15 @@ public class PluginBrowser extends Plugin {
                     case "search-by" -> {
                         if (args.length != 2) {
                             Log.info("'criteria' must be set.");
+                            return;
+                        }
+
+                        if (args[1].equalsIgnoreCase("help")) {
+                            Log.info("Available Criteria:");
+                            Log.info("  &b&lbname&lc&fi <mod name...>&fr - &lwSearch mods by name.");
+                            Log.info("  &b&lbrepo&lc&fi <mod repo...>&fr - &lwSearch mods by name.");
+                            Log.info("  &b&lbauthor&lc&fi <mod author...>&fr - &lwSearch mods by author.");
+                            Log.info("  &b&lbstars&lc&fi <condition>&fr - &lwSearch mods by stars. Format: >1 / <1 / >= 1 / <= 1 / 1");
                             return;
                         }
 
