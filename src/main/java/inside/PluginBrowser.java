@@ -1,11 +1,12 @@
 package inside;
 
+import arc.func.*;
 import arc.math.Mathf;
-import arc.struct.Seq;
+import arc.struct.*;
 import arc.util.*;
 import mindustry.mod.*;
 
-import java.util.Locale;
+import java.util.*;
 
 import static mindustry.Vars.*;
 
@@ -13,16 +14,52 @@ public class PluginBrowser extends Plugin {
 
     public GitHubDownloader gitHubDownloader;
 
+    public ObjectMap<String, Boolf2<String, PluginListing>> pluginSearchCriteria = new ObjectMap<>();
+
+    public ObjectMap<String, Boolf2<String, ModListing>> modSearchCriteria = new ObjectMap<>();
+
     @Override
     public void init() {
 
         gitHubDownloader = new GitHubDownloader();
+
+        pluginSearchCriteria.put("name", (s, p) -> p.name.toLowerCase().contains(s.toLowerCase()));
+        pluginSearchCriteria.put("repo", (s, p) -> p.repo.toLowerCase().contains(s.toLowerCase()));
+        pluginSearchCriteria.put("author", (s, p) -> p.author.equalsIgnoreCase(s));
+        pluginSearchCriteria.put("stars", (s, p) -> {
+            if (s.startsWith(">")) {
+                return p.stars > Strings.parseInt(s.substring(1));
+            } else if (s.startsWith("<")) {
+                return p.stars < Strings.parseInt(s.substring(1));
+            } else if (s.startsWith(">=")) {
+                return p.stars >= Strings.parseInt(s.substring(2));
+            } else if (s.startsWith("<=")) {
+                return p.stars <= Strings.parseInt(s.substring(2));
+            }
+            return p.stars == Strings.parseInt(s);
+        });
+
+        modSearchCriteria.put("name", (s, p) -> p.name.toLowerCase().contains(s.toLowerCase()));
+        modSearchCriteria.put("repo", (s, p) -> p.repo.toLowerCase().contains(s.toLowerCase()));
+        modSearchCriteria.put("author", (s, p) -> p.author.equalsIgnoreCase(s));
+        modSearchCriteria.put("stars", (s, p) -> {
+            if (s.startsWith(">")) {
+                return p.stars > Strings.parseInt(s.substring(1));
+            } else if (s.startsWith("<")) {
+                return p.stars < Strings.parseInt(s.substring(1));
+            } else if (s.startsWith(">=")) {
+                return p.stars >= Strings.parseInt(s.substring(2));
+            } else if (s.startsWith("<=")) {
+                return p.stars <= Strings.parseInt(s.substring(2));
+            }
+            return p.stars == Strings.parseInt(s);
+        });
     }
 
     @Override
     public void registerServerCommands(CommandHandler handler) {
 
-        handler.register("plugins", "<search/add/remove/sync/list> [value...]", "Manage, browse plugins.", args -> {
+        handler.register("plugins", "<search/search-by/add/remove/sync/list> [value...]", "Manage, browse plugins.", args -> {
             switch (args[0].toLowerCase(Locale.ROOT)) {
                 case "search" -> {
                     if (args.length != 2) {
@@ -32,8 +69,7 @@ public class PluginBrowser extends Plugin {
 
                     String arg = args[1].toLowerCase();
                     gitHubDownloader.getPluginList(seq -> {
-                        Seq<PluginListing> result = seq.select(p -> p.name.toLowerCase().contains(arg) ||
-                                p.repo.toLowerCase().contains(arg));
+                        Seq<PluginListing> result = seq.select(p -> p.name.toLowerCase().contains(arg));
 
                         if (result.size > 1){
                             Log.info("Plugins found: @", result.size);
@@ -52,6 +88,47 @@ public class PluginBrowser extends Plugin {
                             Log.info("Stars: @", pluginListing.stars);
                         } else {
                             Log.info("No plugins with that query could be found.");
+                        }
+                    });
+                }
+                case "search-by" -> {
+                    if (args.length != 2) {
+                        Log.info("'criteria' must be set.");
+                        return;
+                    }
+
+                    gitHubDownloader.getPluginList(seq -> {
+                        StringMap params = parseCriteria(args[1], pluginSearchCriteria);
+                        Log.debug("params: @", params);
+                        if (params.isEmpty()) {
+                            Log.info("Incorrect criteria.");
+                            return;
+                        }
+
+                        Seq<PluginListing> result = seq.select(p -> {
+                            for(var param : params){
+                                return pluginSearchCriteria.get(param.key).get(param.value, p);
+                            }
+                            return false;
+                        });
+
+                        if (result.size > 1){
+                            Log.info("Plugins found: @", result.size);
+                            int i = 0;
+                            for (PluginListing pluginListing : result) {
+                                Log.info("- [@] '@' / '@'", i++, pluginListing.name, pluginListing.repo);
+                            }
+                        } else if (result.size == 1) {
+                            PluginListing pluginListing = result.first();
+                            Log.info("Name: @", pluginListing.name);
+                            Log.info("Repository: @", pluginListing.repo);
+                            Log.info("Author: @", pluginListing.author);
+                            Log.info("Description: @", pluginListing.description);
+                            Log.info("Java: @", pluginListing.hasJava ? "yes" : "no");
+                            Log.info("Last Update: @", pluginListing.lastUpdated);
+                            Log.info("Stars: @", pluginListing.stars);
+                        } else {
+                            Log.info("No plugins with that criteria could be found.");
                         }
                     });
                 }
@@ -118,7 +195,7 @@ public class PluginBrowser extends Plugin {
                             return;
                         }
 
-                        Log.info("-- Plugins List Page @/@ --", (page + 1), pages);
+                        Log.info("-- Plugins List Page @/@ --", page + 1, pages);
                         for (int i = commandsPerPage * page; i < Math.min(commandsPerPage * (page + 1), seq.size); i++) {
                             PluginListing pluginListing = seq.get(i);
                             Log.info("Name: @", pluginListing.name);
@@ -141,6 +218,7 @@ public class PluginBrowser extends Plugin {
                 default -> {
                     Log.info("Unknown action. Available actions:");
                     Log.info("  &b&lbplugins search&lc&fi <query...>&fr - &lwSearch plugins by query.");
+                    Log.info("  &b&lbplugins search-by&lc&fi <criteria> <value...>&fr - &lwSearch plugins by criteria.");
                     Log.info("  &b&lbplugins add&lc&fi <plugin name...>&fr - &lwImport plugin.");
                     Log.info("  &b&lbplugins remove&lc&fi <plugin name...>&fr - &lwRemove loaded plugin.");
                     Log.info("  &b&lbplugins list&lc&fi [page...]&fr - &lwDisplay all plugins.");
@@ -186,7 +264,50 @@ public class PluginBrowser extends Plugin {
                                 ModListing modListing = result.first();
                                 Log.info("Name: @", Strings.stripColors(modListing.name));
                                 Log.info("Repository: @", modListing.repo);
-                                Log.info("Author: @", modListing.author);
+                                Log.info("Author: @", Strings.stripColors(modListing.author).replaceAll("\\s+", " "));
+                                Log.info("Description: @", trimText(modListing.description));
+                                Log.info("Min Game Version: @", modListing.minGameVersion);
+                                Log.info("Has Java: @", modListing.hasJava ? "yes" : "no");
+                                Log.info("Has Scripts: @", modListing.hasScripts ? "yes" : "no");
+                                Log.info("Last Update: @", modListing.lastUpdated);
+                                Log.info("Stars: @", modListing.stars);
+                            } else {
+                                Log.info("No mods with that query could be found.");
+                            }
+                        });
+                    }
+                    case "search-by" -> {
+                        if (args.length != 2) {
+                            Log.info("'criteria' must be set.");
+                            return;
+                        }
+
+                        gitHubDownloader.getModList(seq -> {
+                            StringMap params = parseCriteria(args[1], modSearchCriteria);
+                            Log.debug("params: @", params);
+                            if (params.isEmpty()) {
+                                Log.info("Incorrect criteria.");
+                                return;
+                            }
+
+                            Seq<ModListing> result = seq.select(s -> {
+                                for (var param : params) {
+                                    return modSearchCriteria.get(param.key).get(param.value, s);
+                                }
+                                return false;
+                            });
+
+                            if (result.size > 1){
+                                Log.info("Mods found: @", result.size);
+                                int i = 0;
+                                for (ModListing modListing : result) {
+                                    Log.info("- [@] '@' / '@'", i++, modListing.name, modListing.repo);
+                                }
+                            } else if (result.size == 1) {
+                                ModListing modListing = result.first();
+                                Log.info("Name: @", Strings.stripColors(modListing.name));
+                                Log.info("Repository: @", modListing.repo);
+                                Log.info("Author: @", Strings.stripColors(modListing.author).replaceAll("\\s+", " "));
                                 Log.info("Description: @", trimText(modListing.description));
                                 Log.info("Min Game Version: @", modListing.minGameVersion);
                                 Log.info("Has Java: @", modListing.hasJava ? "yes" : "no");
@@ -261,12 +382,12 @@ public class PluginBrowser extends Plugin {
                                 return;
                             }
 
-                            Log.info("-- Mods List Page @/@ --", (page + 1), pages);
+                            Log.info("-- Mods List Page @/@ --", page + 1, pages);
                             for (int i = commandsPerPage * page; i < Math.min(commandsPerPage * (page + 1), seq.size); i++) {
                                 ModListing modListing = seq.get(i);
                                 Log.info("Name: @", Strings.stripColors(modListing.name));
                                 Log.info("Repository: @", modListing.repo);
-                                Log.info("Author: @", modListing.author);
+                                Log.info("Author: @", Strings.stripColors(modListing.author).replaceAll("\\s+", " "));
                                 Log.info("Description: @", trimText(modListing.description));
                                 Log.info("Min Game Version: @", modListing.minGameVersion);
                                 Log.info("Has Java: @", modListing.hasJava ? "yes" : "no");
@@ -286,6 +407,7 @@ public class PluginBrowser extends Plugin {
                     default -> {
                         Log.info("Unknown action. Available actions:");
                         Log.info("  &b&lbmods search&lc&fi <query...>&fr - &lwSearch mods by query.");
+                        Log.info("  &b&lbmods search-by&lc&fi <criteria> <value...>&fr - &lwSearch mods by criteria.");
                         Log.info("  &b&lbmods add&lc&fi <mod name...>&fr - &lwImport mod.");
                         Log.info("  &b&lbmods remove&lc&fi <mod name...>&fr - &lwRemove loaded mod.");
                         Log.info("  &b&lbmods list&lc&fi [page...]&fr - &lwDisplay all mods.");
@@ -294,6 +416,26 @@ public class PluginBrowser extends Plugin {
                 }
             }
         });
+    }
+
+    public <T> StringMap parseCriteria(String text, ObjectMap<String, Boolf2<String, T>> map) {
+        StringMap map0 = new StringMap();
+        int i;
+        while ((i = (i = text.indexOf(',')) != -1 ? i : text.indexOf(' ')) != -1) {
+            String s = text.substring(0, i).toLowerCase();
+            if (map.containsKey(s)) {
+                int i0 = text.indexOf(' ', i);
+                int start = text.indexOf('\'', i);
+                int end = text.indexOf('\'', start + 1);
+                String s1 = text.substring(i0 + 1, (i0 = text.indexOf(' ', i0 + 1)) != -1 ? i0 : text.length());
+                if (start != -1 && end != -1) {
+                    s1 = text.substring(start + 1, end);
+                }
+                map0.put(s, s1);
+            }
+            text = text.substring(i + 1);
+        }
+        return map0;
     }
 
     public String trimText(String text) {
