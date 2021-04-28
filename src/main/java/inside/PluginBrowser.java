@@ -227,7 +227,7 @@ public class PluginBrowser extends Plugin {
                 default -> {
                     Log.info("Unknown action. Available actions:");
                     Log.info("  &b&lbplugins search&lc&fi <query...>&fr - &lwSearch plugins by query.");
-                    Log.info("  &b&lbplugins search-by&lc&fi <criteria> <value...>&fr - &lwSearch plugins by criteria.");
+                    Log.info("  &b&lbplugins search-by&lc&fi <criteria/help> <value...>&fr - &lwSearch plugins by criteria.");
                     Log.info("  &b&lbplugins add&lc&fi <plugin name...>&fr - &lwImport plugin.");
                     Log.info("  &b&lbplugins remove&lc&fi <plugin name...>&fr - &lwRemove loaded plugin.");
                     Log.info("  &b&lbplugins list&lc&fi [page...]&fr - &lwDisplay all plugins.");
@@ -425,7 +425,7 @@ public class PluginBrowser extends Plugin {
                     default -> {
                         Log.info("Unknown action. Available actions:");
                         Log.info("  &b&lbmods search&lc&fi <query...>&fr - &lwSearch mods by query.");
-                        Log.info("  &b&lbmods search-by&lc&fi <criteria> <value...>&fr - &lwSearch mods by criteria.");
+                        Log.info("  &b&lbmods search-by&lc&fi <criteria/help> <value...>&fr - &lwSearch mods by criteria.");
                         Log.info("  &b&lbmods add&lc&fi <mod name...>&fr - &lwImport mod.");
                         Log.info("  &b&lbmods remove&lc&fi <mod name...>&fr - &lwRemove loaded mod.");
                         Log.info("  &b&lbmods list&lc&fi [page...]&fr - &lwDisplay all mods.");
