@@ -1,12 +1,12 @@
 package inside;
 
-import arc.func.*;
+import arc.func.Boolf2;
 import arc.math.Mathf;
 import arc.struct.*;
 import arc.util.*;
 import mindustry.mod.*;
 
-import java.util.*;
+import java.util.Locale;
 
 import static mindustry.Vars.*;
 

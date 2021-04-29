@@ -7,8 +7,9 @@ import arc.struct.*;
 import arc.util.*;
 import arc.util.io.Streams;
 import arc.util.serialization.Jval;
+import mindustry.core.Version;
 import mindustry.io.JsonIO;
-import mindustry.mod.ModListing;
+import mindustry.mod.*;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -106,16 +107,25 @@ public class GitHubDownloader{
     }
 
     public void handleMod(String repo, Net.HttpResponse result, Runnable runnable) {
+        var old = Log.level;
         try {
             Fi file = tmpDirectory.child(repo.replace("/", "") + ".zip");
             Streams.copy(result.getResultAsStream(), file.write(false));
+            // TODO: remove after release
+            if (Version.build != 127) {
+                Log.level = Log.LogLevel.none;
+            }
+
             var mod = mods.importMod(file);
             mod.setRepo(repo);
             file.delete();
         } catch(Throwable e) {
             pluginError(e);
         } finally {
-            runnable.run();
+            Core.app.post(() -> {
+                Log.level = old;
+                runnable.run();
+            });
         }
     }
 
