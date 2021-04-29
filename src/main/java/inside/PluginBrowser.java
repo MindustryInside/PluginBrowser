@@ -149,7 +149,7 @@ public class PluginBrowser extends Plugin {
 
                     String pluginName = args[1];
                     gitHubDownloader.getPluginList(seq -> {
-                        PluginListing pluginListing = seq.find(p -> p.name.equals(pluginName));
+                        PluginListing pluginListing = seq.find(p -> p.name.equalsIgnoreCase(pluginName));
 
                         if (pluginListing == null) {
                             String suggest = findClosest(seq.map(p -> p.name), pluginName, 3);
@@ -172,7 +172,7 @@ public class PluginBrowser extends Plugin {
 
                     String pluginName = args[1];
                     Seq<Mods.LoadedMod> plugins = mods.list().select(l -> l.main instanceof Plugin);
-                    Mods.LoadedMod plugin = plugins.find(l -> l.meta.displayName().equals(pluginName));
+                    Mods.LoadedMod plugin = plugins.find(l -> l.meta.displayName().equalsIgnoreCase(pluginName));
                     if (plugin == null) {
                         String suggest = findClosest(plugins.map(l -> l.meta.displayName()), pluginName, 3);
                         if (suggest != null) {
@@ -271,10 +271,10 @@ public class PluginBrowser extends Plugin {
                                 }
                             } else if (result.size == 1) {
                                 ModListing modListing = result.first();
-                                Log.info("Name: @", Strings.stripColors(modListing.name));
+                                Log.info("Name: @", stripText(modListing.name));
                                 Log.info("Repository: @", modListing.repo);
-                                Log.info("Author: @", Strings.stripColors(modListing.author).replaceAll("\\s+", " "));
-                                Log.info("Description: @", trimText(modListing.description));
+                                Log.info("Author: @", stripText(modListing.author));
+                                Log.info("Description: @", stripText(modListing.description));
                                 Log.info("Min Game Version: @", modListing.minGameVersion);
                                 Log.info("Has Java: @", modListing.hasJava ? "yes" : "no");
                                 Log.info("Has Scripts: @", modListing.hasScripts ? "yes" : "no");
@@ -323,10 +323,10 @@ public class PluginBrowser extends Plugin {
                                 }
                             } else if (result.size == 1) {
                                 ModListing modListing = result.first();
-                                Log.info("Name: @", Strings.stripColors(modListing.name));
+                                Log.info("Name: @", stripText(modListing.name));
                                 Log.info("Repository: @", modListing.repo);
-                                Log.info("Author: @", Strings.stripColors(modListing.author).replaceAll("\\s+", " "));
-                                Log.info("Description: @", trimText(modListing.description));
+                                Log.info("Author: @", stripText(modListing.author));
+                                Log.info("Description: @", stripText(modListing.description));
                                 Log.info("Min Game Version: @", modListing.minGameVersion);
                                 Log.info("Has Java: @", modListing.hasJava ? "yes" : "no");
                                 Log.info("Has Scripts: @", modListing.hasScripts ? "yes" : "no");
@@ -345,7 +345,7 @@ public class PluginBrowser extends Plugin {
 
                         String modName = args[1];
                         gitHubDownloader.getModList(seq -> {
-                            ModListing modListing = seq.find(p -> p.name.equals(modName));
+                            ModListing modListing = seq.find(p -> p.name.equalsIgnoreCase(modName));
 
                             if (modListing == null) {
                                 String suggest = findClosest(seq.map(l -> l.name), modName, 3);
@@ -368,7 +368,7 @@ public class PluginBrowser extends Plugin {
 
                         String modName = args[1];
                         Seq<Mods.LoadedMod> modsList = mods.list().select(l -> !(l.main instanceof Plugin));
-                        Mods.LoadedMod mod = modsList.find(l -> l.meta.displayName().equals(modName));
+                        Mods.LoadedMod mod = modsList.find(l -> l.meta.displayName().equalsIgnoreCase(modName));
                         if (mod == null) {
                             String suggest = findClosest(modsList.map(l -> l.meta.displayName()), modName, 3);
                             if (suggest != null) {
@@ -403,10 +403,10 @@ public class PluginBrowser extends Plugin {
                             Log.info("-- Mods List Page @/@ --", page + 1, pages);
                             for (int i = commandsPerPage * page; i < Math.min(commandsPerPage * (page + 1), seq.size); i++) {
                                 ModListing modListing = seq.get(i);
-                                Log.info("Name: @", Strings.stripColors(modListing.name));
+                                Log.info("Name: @", stripText(modListing.name));
                                 Log.info("Repository: @", modListing.repo);
-                                Log.info("Author: @", Strings.stripColors(modListing.author).replaceAll("\\s+", " "));
-                                Log.info("Description: @", trimText(modListing.description));
+                                Log.info("Author: @", stripText(modListing.author));
+                                Log.info("Description: @", stripText(modListing.description));
                                 Log.info("Min Game Version: @", modListing.minGameVersion);
                                 Log.info("Has Java: @", modListing.hasJava ? "yes" : "no");
                                 Log.info("Has Scripts: @", modListing.hasScripts ? "yes" : "no");
@@ -456,12 +456,8 @@ public class PluginBrowser extends Plugin {
         return map0;
     }
 
-    public String trimText(String text) {
-        if (text == null) return "";
-        if (text.contains("\n")) {
-            return text.substring(0, text.indexOf("\n"));
-        }
-        return text;
+    public String stripText(String text) {
+        return Strings.stripColors(text).replaceAll("\\s+", " ").trim();
     }
 
     @Nullable
