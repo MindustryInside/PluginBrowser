@@ -1,18 +1,17 @@
 package inside;
 
 import arc.*;
-import arc.files.*;
-import arc.func.*;
+import arc.files.Fi;
+import arc.func.Cons;
 import arc.struct.*;
 import arc.util.*;
 import arc.util.io.Streams;
 import arc.util.serialization.Jval;
 import mindustry.core.Version;
 import mindustry.io.JsonIO;
-import mindustry.mod.*;
+import mindustry.mod.ModListing;
 
-import java.text.SimpleDateFormat;
-import java.util.*;
+import java.time.Instant;
 
 import static mindustry.Vars.*;
 
@@ -20,7 +19,7 @@ public class GitHubDownloader{
 
     public static final long syncIntervalTime = 60 * 60 * 1000; // 1 hour
 
-    public static final String pluginListUrl = "https://raw.githubusercontent.com/MindustryInside/MindustryPlugins/main/plugins.json";
+    public static final String pluginListUrl = "https://raw.githubusercontent.com/MindustryInside/MindustryPlugins/master/plugins.json";
 
     public static final String modListUrl = "https://raw.githubusercontent.com/Anuken/MindustryMods/master/mods.json";
 
@@ -47,20 +46,10 @@ public class GitHubDownloader{
                     } else {
                         try {
                             pluginList = JsonIO.json.fromJson(Seq.class, PluginListing.class, strResult);
-
-                            var format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
-                            Func<String, Date> parser = text -> {
-                                try {
-                                    return format.parse(text);
-                                } catch(Exception e) {
-                                    throw new RuntimeException(e);
-                                }
-                            };
-
-                            pluginList.sortComparing(m -> parser.get(m.lastUpdated)).reverse();
+                            pluginList.sortComparing(m -> Instant.parse(m.lastUpdated)).reverse();
                             listener.get(pluginList);
-                        } catch(Exception e) {
-                            Log.err(e);
+                        } catch(Throwable t) {
+                            Log.err(t);
                         }
                     }
                 });
@@ -83,20 +72,10 @@ public class GitHubDownloader{
                     } else {
                         try {
                             modList = JsonIO.json.fromJson(Seq.class, ModListing.class, strResult);
-
-                            var format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
-                            Func<String, Date> parser = text -> {
-                                try {
-                                    return format.parse(text);
-                                } catch(Exception e) {
-                                    throw new RuntimeException(e);
-                                }
-                            };
-
-                            modList.sortComparing(m -> parser.get(m.lastUpdated)).reverse();
+                            modList.sortComparing(m -> Instant.parse(m.lastUpdated)).reverse();
                             listener.get(modList);
-                        } catch(Exception e) {
-                            Log.err(e);
+                        } catch(Throwable t) {
+                            Log.err(t);
                         }
                     }
                 });
@@ -119,8 +98,8 @@ public class GitHubDownloader{
             var mod = mods.importMod(file);
             mod.setRepo(repo);
             file.delete();
-        } catch(Throwable e) {
-            pluginError(e);
+        } catch(Throwable t) {
+            pluginError(t);
         } finally {
             Core.app.post(() -> {
                 Log.level = old;
