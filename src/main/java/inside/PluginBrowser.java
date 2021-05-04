@@ -26,6 +26,7 @@ public class PluginBrowser extends Plugin {
         pluginSearchCriteria.put("name", (s, p) -> p.name.toLowerCase().contains(s.toLowerCase()));
         pluginSearchCriteria.put("repo", (s, p) -> p.repo.toLowerCase().contains(s.toLowerCase()));
         pluginSearchCriteria.put("author", (s, p) -> p.author.equalsIgnoreCase(s));
+        pluginSearchCriteria.put("description", (s, p) -> p.description.toLowerCase().contains(s.toLowerCase()));
         pluginSearchCriteria.put("stars", (s, p) -> {
             if (s.startsWith(">")) {
                 return p.stars > Strings.parseInt(s.substring(1));
@@ -39,20 +40,21 @@ public class PluginBrowser extends Plugin {
             return p.stars == Strings.parseInt(s);
         });
 
-        modSearchCriteria.put("name", (s, p) -> p.name.toLowerCase().contains(s.toLowerCase()));
-        modSearchCriteria.put("repo", (s, p) -> p.repo.toLowerCase().contains(s.toLowerCase()));
-        modSearchCriteria.put("author", (s, p) -> p.author.equalsIgnoreCase(s));
-        modSearchCriteria.put("stars", (s, p) -> {
+        modSearchCriteria.put("name", (s, m) -> m.name.toLowerCase().contains(s.toLowerCase()));
+        modSearchCriteria.put("repo", (s, m) -> m.repo.toLowerCase().contains(s.toLowerCase()));
+        modSearchCriteria.put("author", (s, m) -> m.author.equalsIgnoreCase(s));
+        modSearchCriteria.put("description", (s, m) -> m.description.toLowerCase().contains(s.toLowerCase()));
+        modSearchCriteria.put("stars", (s, m) -> {
             if (s.startsWith(">")) {
-                return p.stars > Strings.parseInt(s.substring(1));
+                return m.stars > Strings.parseInt(s.substring(1));
             } else if (s.startsWith("<")) {
-                return p.stars < Strings.parseInt(s.substring(1));
+                return m.stars < Strings.parseInt(s.substring(1));
             } else if (s.startsWith(">=")) {
-                return p.stars >= Strings.parseInt(s.substring(2));
+                return m.stars >= Strings.parseInt(s.substring(2));
             } else if (s.startsWith("<=")) {
-                return p.stars <= Strings.parseInt(s.substring(2));
+                return m.stars <= Strings.parseInt(s.substring(2));
             }
-            return p.stars == Strings.parseInt(s);
+            return m.stars == Strings.parseInt(s);
         });
     }
 
@@ -99,10 +101,15 @@ public class PluginBrowser extends Plugin {
 
                     if (args[1].equalsIgnoreCase("help")) {
                         Log.info("Available Criteria:");
-                        Log.info("  &b&lbname&lc&fi <mod name...>&fr - &lwSearch mods by name.");
-                        Log.info("  &b&lbrepo&lc&fi <mod repo...>&fr - &lwSearch mods by name.");
-                        Log.info("  &b&lbauthor&lc&fi <mod author...>&fr - &lwSearch mods by author.");
-                        Log.info("  &b&lbstars&lc&fi <condition>&fr - &lwSearch mods by stars. Format: >1 / <1 / >= 1 / <= 1 / 1");
+                        Log.info("  &b&lbname&lc&fi <plugin name...>&fr - &lwSearch plugins by name.");
+                        Log.info("  &b&lbrepo&lc&fi <plugin repo...>&fr - &lwSearch plugins by name.");
+                        Log.info("  &b&lbauthor&lc&fi <plugin author...>&fr - &lwSearch plugins by author.");
+                        Log.info("  &b&lbdescription&lc&fi <plugin description...>&fr - &lwSearch plugins by author.");
+                        Log.info("  &b&lbstars&lc&fi <condition>&fr - &lwSearch plugins by stars. Format: >1 / <1 / >= 1 / <= 1 / 1");
+                        Log.info("Usage Examples:");
+                        Log.info("  &b&lbplugins search-by &lc&finame,repo Mindustry&fr - &lwSearch plugins by name and repo 'Mindustry'");
+                        Log.info("  &b&lbplugins search-by &lc&finame Mindustry stars >3&fr - &lwSearch plugins by name 'Mindustry' and stars >3");
+                        Log.info("  &b&lbplugins search-by &lc&finame 'Plugin Browser'&fr - &lwSearch plugins by name 'Mindustry Browser'");
                         return;
                     }
 
@@ -226,12 +233,12 @@ public class PluginBrowser extends Plugin {
                 }
                 default -> {
                     Log.info("Unknown action. Available actions:");
-                    Log.info("  &b&lbplugins search&lc&fi <query...>&fr - &lwSearch plugins by query.");
-                    Log.info("  &b&lbplugins search-by&lc&fi <criteria/help> <value...>&fr - &lwSearch plugins by criteria.");
-                    Log.info("  &b&lbplugins add&lc&fi <plugin name...>&fr - &lwImport plugin.");
-                    Log.info("  &b&lbplugins remove&lc&fi <plugin name...>&fr - &lwRemove loaded plugin.");
-                    Log.info("  &b&lbplugins list&lc&fi [page...]&fr - &lwDisplay all plugins.");
-                    Log.info("  &b&lbplugins sync&lc&fi&fr - &lwSync plugins list.");
+                    Log.info("  &b&lbplugins search &lc&fi<query...>&fr - &lwSearch plugins by query.");
+                    Log.info("  &b&lbplugins search-by &lc&fi<criteria/help> <value...>&fr - &lwSearch plugins by criteria.");
+                    Log.info("  &b&lbplugins add &lc&fi<plugin name...>&fr - &lwImport plugin.");
+                    Log.info("  &b&lbplugins remove &lc&fi<plugin name...>&fr - &lwRemove loaded plugin.");
+                    Log.info("  &b&lbplugins list &lc&fi[page...]&fr - &lwDisplay all plugins.");
+                    Log.info("  &b&lbplugins sync &lc&fi&fr- &lwSync plugins list.");
                 }
             }
         });
@@ -293,10 +300,15 @@ public class PluginBrowser extends Plugin {
 
                         if (args[1].equalsIgnoreCase("help")) {
                             Log.info("Available Criteria:");
-                            Log.info("  &b&lbname&lc&fi <mod name...>&fr - &lwSearch mods by name.");
-                            Log.info("  &b&lbrepo&lc&fi <mod repo...>&fr - &lwSearch mods by name.");
-                            Log.info("  &b&lbauthor&lc&fi <mod author...>&fr - &lwSearch mods by author.");
-                            Log.info("  &b&lbstars&lc&fi <condition>&fr - &lwSearch mods by stars. Format: >1 / <1 / >= 1 / <= 1 / 1");
+                            Log.info("  &b&lbname &lc&fi<mod name...>&fr - &lwSearch mods by name.");
+                            Log.info("  &b&lbrepo &lc&fi<mod repo...>&fr - &lwSearch mods by name.");
+                            Log.info("  &b&lbauthor &lc&fi<mod author...>&fr - &lwSearch mods by author.");
+                            Log.info("  &b&lbdescription &lc&fi<mod description...>&fr - &lwSearch mods by description.");
+                            Log.info("  &b&lbstars &lc&fi<condition>&fr - &lwSearch mods by stars. Format: >1 / <1 / >= 1 / <= 1 / 1");
+                            Log.info("Usage Examples:");
+                            Log.info("  &b&lbmods search-by &lc&finame,repo Mindustry&fr - &lwSearch mods by name and repo 'Mindustry'");
+                            Log.info("  &b&lbmods search-by &lc&finame Mindustry stars >3&fr - &lwSearch mods by name 'Mindustry' and stars >3");
+                            Log.info("  &b&lbmods search-by &lc&finame 'Mindustry Mod'&fr - &lwSearch mods by name 'Mindustry mod'");
                             return;
                         }
 
@@ -424,12 +436,12 @@ public class PluginBrowser extends Plugin {
                     }
                     default -> {
                         Log.info("Unknown action. Available actions:");
-                        Log.info("  &b&lbmods search&lc&fi <query...>&fr - &lwSearch mods by query.");
-                        Log.info("  &b&lbmods search-by&lc&fi <criteria/help> <value...>&fr - &lwSearch mods by criteria.");
-                        Log.info("  &b&lbmods add&lc&fi <mod name...>&fr - &lwImport mod.");
-                        Log.info("  &b&lbmods remove&lc&fi <mod name...>&fr - &lwRemove loaded mod.");
-                        Log.info("  &b&lbmods list&lc&fi [page...]&fr - &lwDisplay all mods.");
-                        Log.info("  &b&lbmods sync&lc&fi&fr - &lwSync mods list.");
+                        Log.info("  &b&lbmods search &lc&fi<query...>&fr - &lwSearch mods by query.");
+                        Log.info("  &b&lbmods search-by &lc&fi<criteria/help> <value...>&fr - &lwSearch mods by criteria.");
+                        Log.info("  &b&lbmods add &lc&fi<mod name...>&fr - &lwImport mod.");
+                        Log.info("  &b&lbmods remove &lc&fi<mod name...>&fr - &lwRemove loaded mod.");
+                        Log.info("  &b&lbmods list &lc&fi[page...]&fr - &lwDisplay all mods.");
+                        Log.info("  &b&lbmods sync &lc&fi&fr- &lwSync mods list.");
                     }
                 }
             }

@@ -46,7 +46,7 @@ public class GitHubDownloader{
                     } else {
                         try {
                             pluginList = JsonIO.json.fromJson(Seq.class, PluginListing.class, strResult);
-                            pluginList.sortComparing(m -> Instant.parse(m.lastUpdated)).reverse();
+                            pluginList.sortComparing(p -> Instant.parse(p.lastUpdated)).reverse();
                             listener.get(pluginList);
                         } catch(Throwable t) {
                             Log.err(t);
