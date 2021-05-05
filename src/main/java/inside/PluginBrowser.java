@@ -449,23 +449,42 @@ public class PluginBrowser extends Plugin {
     }
 
     public <T> StringMap parseCriteria(String text, ObjectMap<String, Boolf2<String, T>> map) {
-        StringMap map0 = new StringMap();
-        int i;
-        while ((i = (i = text.indexOf(',')) != -1 ? i : text.indexOf(' ')) != -1) {
-            String s = text.substring(0, i).toLowerCase();
-            if (map.containsKey(s)) {
-                int i0 = text.indexOf(' ', i);
-                int start = text.indexOf('\'', i);
-                int end = text.indexOf('\'', start + 1);
-                String s1 = text.substring(i0 + 1, (i0 = text.indexOf(' ', i0 + 1)) != -1 ? i0 : text.length());
-                if (start != -1 && end != -1) {
-                    s1 = text.substring(start + 1, end);
+        Seq<String> split = Seq.with(text.split("[\\s+,]")).filter(s -> !s.isEmpty());
+        StringMap criteria = new StringMap();
+        for (int i = 0; i < split.size; i++) {
+            String key = split.get(i);
+            String value = i + 1 != split.size ? split.get(i + 1) : null;
+
+            // quoted string in priority
+            int start = text.indexOf('\'', text.indexOf(key));
+            int end = text.indexOf('\'', start + 1);
+            if (start != -1 && end != -1) {
+                value = text.substring(start + 1, end);
+            } else {
+                for (int i1 = i; i1 < split.size; i1++) {
+                    String current = split.get(i1);
+                    if (!map.containsKey(current)) {
+                        value = current;
+                        int endStr = -1;
+                        for (int i2 = i1; i2 < split.size; i2++) { // end of non-criteria string
+                            String s1 = split.get(i2);
+                            if (map.containsKey(s1)) {
+                                endStr = text.indexOf(s1, i2);
+                                break;
+                            }
+                        }
+
+                        value = text.substring(text.indexOf(value, i1), endStr != -1 ? endStr : text.length()).trim();
+                        break;
+                    }
                 }
-                map0.put(s, s1);
             }
-            text = text.substring(i + 1);
+
+            if (map.containsKey(key)) {
+                criteria.put(key, value);
+            }
         }
-        return map0;
+        return criteria;
     }
 
     public String stripText(String text) {
