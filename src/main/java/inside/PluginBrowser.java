@@ -117,7 +117,7 @@ public class PluginBrowser extends Plugin {
                         StringMap params = parseCriteria(args[1], pluginSearchCriteria);
                         Log.debug("params: @", params);
                         if (params.isEmpty()) {
-                            Log.info("Incorrect criteria.");
+                            Log.info("Incorrect criteria. Type '@' for help", "plugins search-by help");
                             return;
                         }
 
@@ -316,7 +316,7 @@ public class PluginBrowser extends Plugin {
                             StringMap params = parseCriteria(args[1], modSearchCriteria);
                             Log.debug("params: @", params);
                             if (params.isEmpty()) {
-                                Log.info("Incorrect criteria.");
+                                Log.info("Incorrect criteria. Type '@' for help", "mods search-by help");
                                 return;
                             }
 
@@ -480,7 +480,7 @@ public class PluginBrowser extends Plugin {
                 }
             }
 
-            if (map.containsKey(key)) {
+            if (map.containsKey(key) && value != null) {
                 criteria.put(key, value);
             }
         }
