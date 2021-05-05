@@ -26,7 +26,9 @@ public class PluginBrowser extends Plugin {
         pluginSearchCriteria.put("name", (s, p) -> p.name.toLowerCase().contains(s.toLowerCase()));
         pluginSearchCriteria.put("repo", (s, p) -> p.repo.toLowerCase().contains(s.toLowerCase()));
         pluginSearchCriteria.put("author", (s, p) -> p.author.equalsIgnoreCase(s));
-        pluginSearchCriteria.put("description", (s, p) -> p.description.toLowerCase().contains(s.toLowerCase()));
+        Boolf2<String, PluginListing> descPluginPred = (s, p) -> p.description.toLowerCase().contains(s.toLowerCase());
+        pluginSearchCriteria.put("description", descPluginPred);
+        pluginSearchCriteria.put("desc", descPluginPred);
         pluginSearchCriteria.put("stars", (s, p) -> {
             if (s.startsWith(">")) {
                 return p.stars > Strings.parseInt(s.substring(1));
@@ -43,7 +45,9 @@ public class PluginBrowser extends Plugin {
         modSearchCriteria.put("name", (s, m) -> m.name.toLowerCase().contains(s.toLowerCase()));
         modSearchCriteria.put("repo", (s, m) -> m.repo.toLowerCase().contains(s.toLowerCase()));
         modSearchCriteria.put("author", (s, m) -> m.author.equalsIgnoreCase(s));
-        modSearchCriteria.put("description", (s, m) -> m.description.toLowerCase().contains(s.toLowerCase()));
+        Boolf2<String, ModListing> descModPred = (s, m) -> m.description.toLowerCase().contains(s.toLowerCase());
+        modSearchCriteria.put("description", descModPred);
+        modSearchCriteria.put("desc", descModPred);
         modSearchCriteria.put("stars", (s, m) -> {
             if (s.startsWith(">")) {
                 return m.stars > Strings.parseInt(s.substring(1));
@@ -463,23 +467,24 @@ public class PluginBrowser extends Plugin {
             } else {
                 for (int i1 = i; i1 < split.size; i1++) {
                     String current = split.get(i1);
-                    if (!map.containsKey(current)) {
+                    if (!map.containsKey(current.toLowerCase())) {
                         value = current;
                         int endStr = -1;
                         for (int i2 = i1; i2 < split.size; i2++) { // end of non-criteria string
                             String s1 = split.get(i2);
-                            if (map.containsKey(s1)) {
+                            if (map.containsKey(s1.toLowerCase())) {
                                 endStr = text.indexOf(s1, i2);
                                 break;
                             }
                         }
 
-                        value = text.substring(text.indexOf(value, i1), endStr != -1 ? endStr : text.length()).trim();
+                        value = text.substring(text.indexOf(value, key.length()), endStr != -1 ? endStr : text.length()).trim();
                         break;
                     }
                 }
             }
 
+            key = key.toLowerCase();
             if (map.containsKey(key) && value != null) {
                 criteria.put(key, value);
             }
