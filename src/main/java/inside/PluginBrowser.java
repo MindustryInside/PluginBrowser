@@ -14,52 +14,10 @@ public class PluginBrowser extends Plugin {
 
     public GitHubDownloader gitHubDownloader;
 
-    public ObjectMap<String, Boolf2<String, PluginListing>> pluginSearchCriteria = new ObjectMap<>();
-
-    public ObjectMap<String, Boolf2<String, ModListing>> modSearchCriteria = new ObjectMap<>();
-
     @Override
     public void init() {
 
         gitHubDownloader = new GitHubDownloader();
-
-        pluginSearchCriteria.put("name", (s, p) -> p.name.toLowerCase().contains(s.toLowerCase()));
-        pluginSearchCriteria.put("repo", (s, p) -> p.repo.toLowerCase().contains(s.toLowerCase()));
-        pluginSearchCriteria.put("author", (s, p) -> p.author.equalsIgnoreCase(s));
-        Boolf2<String, PluginListing> descPluginPred = (s, p) -> p.description.toLowerCase().contains(s.toLowerCase());
-        pluginSearchCriteria.put("description", descPluginPred);
-        pluginSearchCriteria.put("desc", descPluginPred);
-        pluginSearchCriteria.put("stars", (s, p) -> {
-            if (s.startsWith(">")) {
-                return p.stars > Strings.parseInt(s.substring(1));
-            } else if (s.startsWith("<")) {
-                return p.stars < Strings.parseInt(s.substring(1));
-            } else if (s.startsWith(">=")) {
-                return p.stars >= Strings.parseInt(s.substring(2));
-            } else if (s.startsWith("<=")) {
-                return p.stars <= Strings.parseInt(s.substring(2));
-            }
-            return p.stars == Strings.parseInt(s);
-        });
-
-        modSearchCriteria.put("name", (s, m) -> m.name.toLowerCase().contains(s.toLowerCase()));
-        modSearchCriteria.put("repo", (s, m) -> m.repo.toLowerCase().contains(s.toLowerCase()));
-        modSearchCriteria.put("author", (s, m) -> m.author.equalsIgnoreCase(s));
-        Boolf2<String, ModListing> descModPred = (s, m) -> m.description.toLowerCase().contains(s.toLowerCase());
-        modSearchCriteria.put("description", descModPred);
-        modSearchCriteria.put("desc", descModPred);
-        modSearchCriteria.put("stars", (s, m) -> {
-            if (s.startsWith(">")) {
-                return m.stars > Strings.parseInt(s.substring(1));
-            } else if (s.startsWith("<")) {
-                return m.stars < Strings.parseInt(s.substring(1));
-            } else if (s.startsWith(">=")) {
-                return m.stars >= Strings.parseInt(s.substring(2));
-            } else if (s.startsWith("<=")) {
-                return m.stars <= Strings.parseInt(s.substring(2));
-            }
-            return m.stars == Strings.parseInt(s);
-        });
     }
 
     @Override
@@ -118,7 +76,7 @@ public class PluginBrowser extends Plugin {
                     }
 
                     gitHubDownloader.getPluginList(seq -> {
-                        StringMap params = parseCriteria(args[1], pluginSearchCriteria);
+                        StringMap params = parseCriteria(args[1], SearchCriteria.getCriteriaMap());
                         Log.debug("params: @", params);
                         if (params.isEmpty()) {
                             Log.info("Incorrect criteria. Type '@' for help", "plugins search-by help");
@@ -127,7 +85,7 @@ public class PluginBrowser extends Plugin {
 
                         Seq<PluginListing> result = seq.select(p -> {
                             for(var param : params){
-                                return pluginSearchCriteria.get(param.key).get(param.value, p);
+                                return SearchCriteria.getCriteriaMap().get(param.key).get(param.value, p);
                             }
                             return false;
                         });
@@ -317,7 +275,7 @@ public class PluginBrowser extends Plugin {
                         }
 
                         gitHubDownloader.getModList(seq -> {
-                            StringMap params = parseCriteria(args[1], modSearchCriteria);
+                            StringMap params = parseCriteria(args[1], SearchCriteria.getCriteriaMap());
                             Log.debug("params: @", params);
                             if (params.isEmpty()) {
                                 Log.info("Incorrect criteria. Type '@' for help", "mods search-by help");
@@ -326,7 +284,7 @@ public class PluginBrowser extends Plugin {
 
                             Seq<ModListing> result = seq.select(s -> {
                                 for (var param : params) {
-                                    return modSearchCriteria.get(param.key).get(param.value, s);
+                                    return SearchCriteria.getCriteriaMap().get(param.key).get(param.value, s);
                                 }
                                 return false;
                             });
@@ -452,7 +410,7 @@ public class PluginBrowser extends Plugin {
         });
     }
 
-    public <T> StringMap parseCriteria(String text, ObjectMap<String, Boolf2<String, T>> map) {
+    public StringMap parseCriteria(String text, ObjectMap<String, SearchCriteria> map) {
         Seq<String> split = Seq.with(text.split("[\\s+,]")).filter(s -> !s.isEmpty());
         StringMap criteria = new StringMap();
         for (int i = 0; i < split.size; i++) {
@@ -478,7 +436,9 @@ public class PluginBrowser extends Plugin {
                             }
                         }
 
-                        value = text.substring(text.indexOf(value, key.length()), endStr != -1 ? endStr : text.length()).trim();
+                        // use key as offset if he is criteria
+                        int beginIndex = text.indexOf(value, map.containsKey(key.toLowerCase()) ? key.length() : i1);
+                        value = text.substring(beginIndex, endStr != -1 ? endStr : text.length()).trim();
                         break;
                     }
                 }
