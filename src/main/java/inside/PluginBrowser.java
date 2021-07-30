@@ -1,6 +1,5 @@
 package inside;
 
-import arc.func.Boolf2;
 import arc.math.Mathf;
 import arc.struct.*;
 import arc.util.*;

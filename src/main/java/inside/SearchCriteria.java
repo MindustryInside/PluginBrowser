@@ -20,8 +20,9 @@ public enum SearchCriteria implements Boolf2<String, ModListing> {
             return m.stars >= Strings.parseInt(s.substring(2));
         } else if (s.startsWith("<=")) {
             return m.stars <= Strings.parseInt(s.substring(2));
+        } else {
+            return m.stars == Strings.parseInt(s);
         }
-        return m.stars == Strings.parseInt(s);
     });
 
     private static ObjectMap<String, SearchCriteria> criteriaMap;

@@ -7,7 +7,6 @@ import arc.struct.*;
 import arc.util.*;
 import arc.util.io.Streams;
 import arc.util.serialization.Jval;
-import mindustry.core.Version;
 import mindustry.io.JsonIO;
 import mindustry.mod.ModListing;
 
@@ -36,12 +35,12 @@ public class GitHubDownloader{
     @SuppressWarnings("unchecked")
     public void getPluginList(Cons<Seq<PluginListing>> listener) {
         if (pluginList == null || Time.timeSinceMillis(lastPluginsTimeSynced) >= syncIntervalTime) {
-            Core.net.httpGet(pluginListUrl, response -> {
+            Http.get(pluginListUrl, response -> {
                 String strResult = response.getResultAsString();
                 var status = response.getStatus();
 
                 Core.app.post(() -> {
-                    if (status != Net.HttpStatus.OK) {
+                    if (status != Http.HttpStatus.OK) {
                         showStatus(status);
                     } else {
                         try {
@@ -62,49 +61,42 @@ public class GitHubDownloader{
     @SuppressWarnings("unchecked")
     public void getModList(Cons<Seq<ModListing>> listener) {
         if (modList == null || Time.timeSinceMillis(lastModsTimeSynced) >= syncIntervalTime) {
-            Core.net.httpGet(modListUrl, response -> {
-                String strResult = response.getResultAsString();
-                var status = response.getStatus();
+            Http.get(modListUrl)
+                    .error(this::importFail)
+                    .submit(res -> {
+                        String strResult = res.getResultAsString();
+                        var status = res.getStatus();
 
-                Core.app.post(() -> {
-                    if (status != Net.HttpStatus.OK) {
-                        showStatus(status);
-                    } else {
-                        try {
-                            modList = JsonIO.json.fromJson(Seq.class, ModListing.class, strResult);
-                            modList.sortComparing(m -> Instant.parse(m.lastUpdated)).reverse();
-                            listener.get(modList);
-                        } catch(Throwable t) {
-                            Log.err(t);
-                        }
-                    }
-                });
-            }, this::importFail);
+                        Core.app.post(() -> {
+                            if (status != Http.HttpStatus.OK) {
+                                showStatus(status);
+                            } else {
+                                try {
+                                    modList = JsonIO.json.fromJson(Seq.class, ModListing.class, strResult);
+                                    modList.sortComparing(m -> Instant.parse(m.lastUpdated)).reverse();
+                                    listener.get(modList);
+                                } catch(Throwable t) {
+                                    Log.err(t);
+                                }
+                            }
+                        });
+                    });
         } else {
             listener.get(modList);
         }
     }
 
-    public void handleMod(String repo, Net.HttpResponse result, Runnable runnable) {
-        var old = Log.level;
+    public void handleMod(String repo, Http.HttpResponse result, Runnable runnable) {
         try {
             Fi file = tmpDirectory.child(repo.replace("/", "") + ".zip");
             Streams.copy(result.getResultAsStream(), file.write(false));
-            // TODO: remove after release
-            if (Version.build != 127) {
-                Log.level = Log.LogLevel.none;
-            }
-
             var mod = mods.importMod(file);
             mod.setRepo(repo);
             file.delete();
         } catch(Throwable t) {
             pluginError(t);
         } finally {
-            Core.app.post(() -> {
-                Log.level = old;
-                runnable.run();
-            });
+            Core.app.post(runnable);
         }
     }
 
@@ -112,75 +104,82 @@ public class GitHubDownloader{
         if (hasJava) {
             importJavaMod(repo, runnable);
         } else {
-            Core.net.httpGet(ghApi + "/repos/" + repo, res -> {
-                if (checkError(res)) {
-                    var json = Jval.read(res.getResultAsString());
-                    String mainBranch = json.getString("default_branch");
-                    String language = json.getString("language", "<none>");
+            Http.get(ghApi + "/repos/" + repo)
+                    .error(this::importFail)
+                    .submit(res -> {
+                        if (checkError(res)) {
+                            var json = Jval.read(res.getResultAsString());
+                            String mainBranch = json.getString("default_branch");
+                            String language = json.getString("language", "<none>");
 
-                    // this is a crude heuristic for class mods; only required for direct github import
-                    // TODO make a more reliable way to distinguish java mod repos
-                    if (jvmLangs.contains(language)) {
-                        importJavaMod(repo, runnable);
-                    } else {
-                        importBranch(mainBranch, repo, this::showStatus, runnable);
-                    }
-                }
-            }, this::importFail);
+                            // this is a crude heuristic for class mods; only required for direct github import
+                            // TODO make a more reliable way to distinguish java mod repos
+                            if (jvmLangs.contains(language)) {
+                                importJavaMod(repo, runnable);
+                            } else {
+                                importBranch(mainBranch, repo, this::showStatus, runnable);
+                            }
+                        }
+                    });
         }
     }
 
     public void importJavaMod(String repo, Runnable runnable) {
         // grab latest release
-        Core.net.httpGet(ghApi + "/repos/" + repo + "/releases/latest", res -> {
-            if (checkError(res)) {
-                var json = Jval.read(res.getResultAsString());
-                var asset = json.get("assets").asArray().find(j -> j.getString("name").endsWith(".jar"));
-                if (asset != null) {
-                    // grab actual file
-                    String url = asset.getString("browser_download_url");
-                    Core.net.httpGet(url, result -> {
-                        if (checkError(result)) {
-                            handleMod(repo, result, runnable);
-                        }
-                    }, this::importFail);
-                } else {
-                    throw new ArcRuntimeException("No JAR file found in releases. Make sure you have a valid jar file in the mod's latest Github Release.");
-                }
-            }
-        }, this::importFail);
-    }
-
-    public void importBranch(String branch, String repo, Cons<Net.HttpStatus> err, Runnable runnable) {
-        Core.net.httpGet(ghApi + "/repos/" + repo + "/zipball/" + branch, loc -> {
-            if (loc.getStatus() == Net.HttpStatus.OK) {
-                if (loc.getHeader("Location") != null) {
-                    Core.net.httpGet(loc.getHeader("Location"), result -> {
-                        if (result.getStatus() != Net.HttpStatus.OK) {
-                            err.get(result.getStatus());
+        Http.get(ghApi + "/repos/" + repo + "/releases/latest")
+                .error(this::importFail)
+                .submit(res -> {
+                    if (checkError(res)) {
+                        var json = Jval.read(res.getResultAsString());
+                        var asset = json.get("assets").asArray().find(j -> j.getString("name").endsWith(".jar"));
+                        if (asset != null) {
+                            // grab actual file
+                            String url = asset.getString("browser_download_url");
+                            Http.get(url, result -> {
+                                if (checkError(result)) {
+                                    handleMod(repo, result, runnable);
+                                }
+                            }, this::importFail);
                         } else {
-                            handleMod(repo, result, runnable);
+                            throw new ArcRuntimeException("No JAR file found in releases. Make sure you have a valid jar file in the mod's latest Github Release.");
                         }
-                    }, this::importFail);
-                } else {
-                    handleMod(repo, loc, runnable);
-                }
-            } else {
-                err.get(loc.getStatus());
-            }
-        }, this::importFail);
+                    }
+                });
     }
 
-    private boolean checkError(Net.HttpResponse res) {
-        if (res.getStatus() == Net.HttpStatus.OK) {
+    public void importBranch(String branch, String repo, Cons<Http.HttpStatus> err, Runnable runnable) {
+        Http.get(ghApi + "/repos/" + repo + "/zipball/" + branch)
+                .error(this::importFail)
+                .submit(loc -> {
+                    if (loc.getStatus() == Http.HttpStatus.OK) {
+                        if (loc.getHeader("Location") != null) {
+                            Http.get(loc.getHeader("Location"))
+                                    .error(this::importFail)
+                                    .submit(res -> {
+                                        if (res.getStatus() != Http.HttpStatus.OK) {
+                                            err.get(res.getStatus());
+                                        } else {
+                                            handleMod(repo, res, runnable);
+                                        }
+                                    });
+                        } else {
+                            handleMod(repo, loc, runnable);
+                        }
+                    } else {
+                        err.get(loc.getStatus());
+                    }
+                });
+    }
+
+    private boolean checkError(Http.HttpResponse res) {
+        if (res.getStatus() == Http.HttpStatus.OK) {
             return true;
-        } else {
-            showStatus(res.getStatus());
-            return false;
         }
+        showStatus(res.getStatus());
+        return false;
     }
 
-    private void showStatus(Net.HttpStatus status) {
+    private void showStatus(Http.HttpStatus status) {
         Core.app.post(() -> Log.err("Connection error: @", Strings.capitalize(status.toString().toLowerCase())));
     }
 
@@ -190,7 +189,8 @@ public class GitHubDownloader{
 
     private void pluginError(Throwable error) {
         if (Strings.getCauses(error).contains(t -> t.getMessage() != null &&
-                (t.getMessage().contains("trust anchor") || t.getMessage().contains("SSL") || t.getMessage().contains("protocol")))) {
+                (t.getMessage().contains("trust anchor") || t.getMessage().contains("SSL") ||
+                t.getMessage().contains("protocol")))) {
             Log.err("Your device does not support this feature.");
         } else {
             Log.err(error);
